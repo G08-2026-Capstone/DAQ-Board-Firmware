@@ -130,8 +130,8 @@ int main(void)
 
   while (1)
   {
-	  if(CDC_Transmit_FS((uint8_t*)&count, sizeof(count)) != USBD_OK){
-		  HAL_Delay(1);
+	  if(CDC_Transmit_FS(buffer, sizeof(buffer)) != USBD_OK){
+		  asm("NOP");
 	  }
     /* USER CODE END WHILE */
 
