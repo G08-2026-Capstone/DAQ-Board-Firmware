@@ -122,7 +122,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  uint8_t buffer[512];
+  uint8_t buffer[4096];
 
   for(int i = 0; i < sizeof(buffer); i++){
 	  buffer[i] = i & 0xFF;
