@@ -1,7 +1,7 @@
 /*
  * usb_task.h
  *
- *  Created on: Nov 2, 2025
+ *  Created on: Nov 3, 2025
  *      Author: drive
  */
 
@@ -18,7 +18,7 @@
 extern TaskHandle_t usbTaskHandle;
 
 // Functions
-void USB_Task(void *argument);
+void USB_RXTask(void *argument);
 
 
 #endif /* INC_TASKS_TASK_USB_H_ */
