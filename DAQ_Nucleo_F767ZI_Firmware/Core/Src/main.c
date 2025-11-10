@@ -17,9 +17,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <task_usb.h>
-#include <task_usb.h>
-#include <task_usb.h>
 #include "main.h"
 #include "string.h"
 #include "cmsis_os.h"
@@ -27,6 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -75,12 +73,26 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for USBTask */
-osThreadId_t USBTaskHandle;
-const osThreadAttr_t USBTask_attributes = {
-  .name = "USBTask",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityRealtime,
+/* Definitions for mockADCDataIn */
+osThreadId_t mockADCDataInHandle;
+const osThreadAttr_t mockADCDataIn_attributes = {
+  .name = "mockADCDataIn",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for usbRX */
+osThreadId_t usbRXHandle;
+const osThreadAttr_t usbRX_attributes = {
+  .name = "usbRX",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal1,
+};
+/* Definitions for usbBULKTXTASK */
+osThreadId_t usbBULKTXTASKHandle;
+const osThreadAttr_t usbBULKTXTASK_attributes = {
+  .name = "usbBULKTXTASK",
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for USBTXQueue */
 osMessageQueueId_t USBTXQueueHandle;
@@ -92,6 +104,11 @@ osMessageQueueId_t USBRXQueueHandle;
 const osMessageQueueAttr_t USBRXQueue_attributes = {
   .name = "USBRXQueue"
 };
+/* Definitions for controlADCEvent */
+osEventFlagsId_t controlADCEventHandle;
+const osEventFlagsAttr_t controlADCEvent_attributes = {
+  .name = "controlADCEvent"
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -102,7 +119,9 @@ static void MX_GPIO_Init(void);
 static void MX_ETH_Init(void);
 static void MX_USART3_UART_Init(void);
 void StartDefaultTask(void *argument);
-extern void USB_Task(void *argument);
+void task_Mock_ADC_Data_In(void *argument);
+extern void TASK_USB_RX(void *argument);
+extern void TASK_USB_BULK_TX(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -145,7 +164,7 @@ int main(void)
   MX_ETH_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  
+  MX_USB_DEVICE_Init(); // Initialize USB device
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -165,10 +184,10 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of USBTXQueue */
-  USBTXQueueHandle = osMessageQueueNew (16, sizeof(uint16_t), &USBTXQueue_attributes);
+  USBTXQueueHandle = osMessageQueueNew (128, sizeof(uint32_t), &USBTXQueue_attributes);
 
   /* creation of USBRXQueue */
-  USBRXQueueHandle = osMessageQueueNew (16, sizeof(uint16_t), &USBRXQueue_attributes);
+  USBRXQueueHandle = osMessageQueueNew (8, sizeof(uint16_t), &USBRXQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -178,12 +197,22 @@ int main(void)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* creation of USBTask */
-  USBTaskHandle = osThreadNew(USB_Task, NULL, &USBTask_attributes);
+  /* creation of mockADCDataIn */
+  mockADCDataInHandle = osThreadNew(task_Mock_ADC_Data_In, NULL, &mockADCDataIn_attributes);
+
+  /* creation of usbRX */
+  usbRXHandle = osThreadNew(TASK_USB_RX, NULL, &usbRX_attributes);
+
+  /* creation of usbBULKTXTASK */
+  usbBULKTXTASKHandle = osThreadNew(TASK_USB_BULK_TX, NULL, &usbBULKTXTASK_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
+
+  /* Create the event(s) */
+  /* creation of controlADCEvent */
+  controlADCEventHandle = osEventFlagsNew(&controlADCEvent_attributes);
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
@@ -425,6 +454,27 @@ void StartDefaultTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_task_Mock_ADC_Data_In */
+/**
+* @brief Function implementing the mockADCDataIn thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_task_Mock_ADC_Data_In */
+void task_Mock_ADC_Data_In(void *argument)
+{
+  /* USER CODE BEGIN task_Mock_ADC_Data_In */
+  /* Infinite loop */
+	uint32_t values = 0x123456;	// Simulated data (Needs work to simulate the DMA that will be running from the ADC)
+	for(;;)
+	{
+		osEventFlagsWait(controlADCEventHandle, 0x01, osFlagsNoClear, osWaitForever);	// This will wait for the start command to activate it.
+		osMessageQueuePut(USBTXQueueHandle, &values, 0, osWaitForever);	// Simulated data is sent to the USB interface.
+		values++;
+	}
+  /* USER CODE END task_Mock_ADC_Data_In */
 }
 
 /**

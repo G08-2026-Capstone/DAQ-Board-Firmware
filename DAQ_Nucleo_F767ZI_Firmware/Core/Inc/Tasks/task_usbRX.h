@@ -9,16 +9,18 @@
 #define INC_TASKS_TASK_USB_H_
 
 // Includes
-#include "FreeRTOS.h"
+#include "cmsis_os.h"
 #include "task.h"
 #include "usbd_cdc_if.h"
 #include "usb_device.h"
 
 
-extern TaskHandle_t usbTaskHandle;
+extern osThreadId_t usbRXHandle;
+extern osMessageQueueId_t USBRXQueueHandle;
+extern osEventFlagsId_t controlADCEventHandle;
 
 // Functions
-void USB_RXTask(void *argument);
+void TASK_USB_RX(void *argument);
 
 
 #endif /* INC_TASKS_TASK_USB_H_ */

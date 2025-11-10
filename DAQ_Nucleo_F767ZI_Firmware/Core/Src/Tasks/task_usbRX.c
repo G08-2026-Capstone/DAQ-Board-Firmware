@@ -5,10 +5,21 @@
  *      Author: drive
  */
 
-#include <task_usb.h>
+#include <task_usbRX.h>
 
 
 
-void USB_RXTask(void *argument){
+void TASK_USB_RX(void *argument){
+	uint8_t message = 0;
+	for(;;){
+		// Wait for command
+		osMessageQueueGet(USBRXQueueHandle, &message, NULL, osWaitForever);
 
+		if(message == 0x0){	// Stop ADC task
+			osEventFlagsClear(controlADCEventHandle, 0x1);
+
+		}else if(message == 0x1){	// Start ADC task
+			osEventFlagsSet(controlADCEventHandle, 0x1);
+		}
+	}
 }

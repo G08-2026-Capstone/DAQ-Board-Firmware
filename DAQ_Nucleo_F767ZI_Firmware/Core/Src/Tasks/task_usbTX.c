@@ -5,23 +5,28 @@
  *      Author: drive
  */
 
-#include <task_usb.h>
+#include <task_usbTX.h>
 
+#define BUFFER_SIZE 800
 
-void USB_TXTask(void *argument){
-
-	MX_USB_DEVICE_Init(); // Initialize USB device (this should be moved to main)
-    void *blockAddress; // Memory pool block address
-
+void TASK_USB_BULK_TX(void *argument){
+	uint32_t message = 0;
+	uint32_t buffer[BUFFER_SIZE];
+	uint16_t bufferPointer = 0;
 	for(;;){
-        // Grab the pool address
-        osMessageQueueGet(USBTXQueueHandle, blockAddress, NULL, osWaitForever);
-        uint32_t sizeOfBlock = osMemoryPoolGetBlockSize(poolIDPlaceholder)
-		if(CDC_Transmit_FS(blockAddress, (uint16_t)sizeOfBlock) != USBD_OK){
-			asm("NOP");
+        // Wait for there to be data to send over the USB line
+		osMessageQueueGet(USBTXQueueHandle, &message, NULL, osWaitForever);
+
+		// Data will only be sent when the sending buffer is full
+		if(bufferPointer >= BUFFER_SIZE){
+			while(CDC_Transmit_FS((uint8_t*) &buffer, sizeof(uint32_t)*BUFFER_SIZE) != USBD_OK);
+			bufferPointer = 0;
+		}
+		else{	// Filling the buffer
+			buffer[bufferPointer] = message;
+			bufferPointer++;
 		}
 
-        osMemoryPoolFree(poolIDPlaceholder, blockAddress);
 	}
 
 }
