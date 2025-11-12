@@ -15,11 +15,13 @@ void TASK_USB_RX(void *argument){
 		// Wait for command
 		osMessageQueueGet(USBRXQueueHandle, &message, NULL, osWaitForever);
 
-		if(message == 0x0){	// Stop ADC task
-			osEventFlagsClear(controlADCEventHandle, 0x1);
-
-		}else if(message == 0x1){	// Start ADC task
-			osEventFlagsSet(controlADCEventHandle, 0x1);
+		switch (message){
+			case 0:	// Stop ADC task
+				osEventFlagsClear(controlADCEventHandle, 0x1);
+				break;
+			case 1:	// Start ADC task
+				osEventFlagsSet(controlADCEventHandle, 0x1);
+				break;
 		}
 	}
 }
