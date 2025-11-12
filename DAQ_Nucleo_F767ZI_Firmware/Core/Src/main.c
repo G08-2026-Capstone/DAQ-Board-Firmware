@@ -25,6 +25,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
+#include "task_usbTX.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -77,7 +78,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t mockADCDataInHandle;
 const osThreadAttr_t mockADCDataIn_attributes = {
   .name = "mockADCDataIn",
-  .stack_size = 256 * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for usbRX */
@@ -164,7 +165,6 @@ int main(void)
   MX_ETH_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  MX_USB_DEVICE_Init(); // Initialize USB device
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -184,7 +184,7 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of USBTXQueue */
-  USBTXQueueHandle = osMessageQueueNew (128, sizeof(uint32_t), &USBTXQueue_attributes);
+  USBTXQueueHandle = osMessageQueueNew (8, 3200, &USBTXQueue_attributes);
 
   /* creation of USBRXQueue */
   USBRXQueueHandle = osMessageQueueNew (8, sizeof(uint16_t), &USBRXQueue_attributes);
@@ -467,12 +467,17 @@ void task_Mock_ADC_Data_In(void *argument)
 {
   /* USER CODE BEGIN task_Mock_ADC_Data_In */
   /* Infinite loop */
-	uint32_t values = 0x123456;	// Simulated data (Needs work to simulate the DMA that will be running from the ADC)
+	uint32_t buffer[BUFFER_SIZE];	// Simulated data (Needs work to simulate the DMA that will be running from the ADC)
+	uint32_t counter = 0;
 	for(;;)
 	{
 		osEventFlagsWait(controlADCEventHandle, 0x01, osFlagsNoClear, osWaitForever);	// This will wait for the start command to activate it.
-		osMessageQueuePut(USBTXQueueHandle, &values, 0, osWaitForever);	// Simulated data is sent to the USB interface.
-		values++;
+
+		for(int i = 0; i < BUFFER_SIZE; i++){
+			buffer[i] = counter++;
+		}
+
+		osMessageQueuePut(USBTXQueueHandle, &buffer, 0, osWaitForever);	// Simulated data is sent to the USB interface.
 	}
   /* USER CODE END task_Mock_ADC_Data_In */
 }
