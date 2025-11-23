@@ -2,16 +2,17 @@ import serial, time
 import threading
 
 
-port = "COM8"
-ser = serial.Serial(port, baudrate=115200, timeout=0)
-
-
-def read(ser: serial.Serial):
+def throughputTest(ser: serial.Serial):
     print("reading start")
     total = 0
     start = time.perf_counter()
 
-    while True:
+    command = bytes([1]) #  Send start command
+    print(f"sending {command}")
+    ser.write(command)
+
+    startTest = start = time.perf_counter()
+    while time.perf_counter() - startTest < 20:
         data = ser.read(65536)
         total += len(data)
         elapsed = time.perf_counter() - start
@@ -20,6 +21,10 @@ def read(ser: serial.Serial):
             print(f"{mbps:.2f} Mb/s")
             total = 0
             start = time.perf_counter()
+    
+    command = bytes([0]) #  Send start command
+    print(f"sending {command}")
+    ser.write(command)
 
 def write(ser: serial.Serial):
     print("write start")
@@ -28,12 +33,11 @@ def write(ser: serial.Serial):
         print(f"sending {command}")
         ser.write(command)
 
+
 def main():
+    port = "COM8"
+    ser = serial.Serial(port, baudrate=115200, timeout=0)
 
-    read_thread = threading.Thread(target=read, args=(ser,))
-    read_thread.start()
-
-    write_thread = threading.Thread(target=write, args=(ser,))
-    write_thread.start()
+    throughputTest(ser)
 
 main()
