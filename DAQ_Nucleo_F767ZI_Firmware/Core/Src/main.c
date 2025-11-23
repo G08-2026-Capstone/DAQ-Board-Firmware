@@ -19,11 +19,13 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "string.h"
+#include "cmsis_os.h"
 #include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
+#include "task_usbTX.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,7 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define BUFFER_COUNT 4
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -65,6 +67,49 @@ ETH_HandleTypeDef heth;
 
 UART_HandleTypeDef huart3;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for mockADCDataIn */
+osThreadId_t mockADCDataInHandle;
+const osThreadAttr_t mockADCDataIn_attributes = {
+  .name = "mockADCDataIn",
+  .stack_size = 1800 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for usbRX */
+osThreadId_t usbRXHandle;
+const osThreadAttr_t usbRX_attributes = {
+  .name = "usbRX",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal1,
+};
+/* Definitions for usbBULKTXTASK */
+osThreadId_t usbBULKTXTASKHandle;
+const osThreadAttr_t usbBULKTXTASK_attributes = {
+  .name = "usbBULKTXTASK",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for USBTXQueue */
+osMessageQueueId_t USBTXQueueHandle;
+const osMessageQueueAttr_t USBTXQueue_attributes = {
+  .name = "USBTXQueue"
+};
+/* Definitions for USBRXQueue */
+osMessageQueueId_t USBRXQueueHandle;
+const osMessageQueueAttr_t USBRXQueue_attributes = {
+  .name = "USBRXQueue"
+};
+/* Definitions for controlADCEvent */
+osEventFlagsId_t controlADCEventHandle;
+const osEventFlagsAttr_t controlADCEvent_attributes = {
+  .name = "controlADCEvent"
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -74,6 +119,11 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ETH_Init(void);
 static void MX_USART3_UART_Init(void);
+void StartDefaultTask(void *argument);
+void task_Mock_ADC_Data_In(void *argument);
+extern void TASK_USB_RX(void *argument);
+extern void TASK_USB_BULK_TX(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -114,25 +164,69 @@ int main(void)
   MX_GPIO_Init();
   MX_ETH_Init();
   MX_USART3_UART_Init();
-  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of USBTXQueue */
+  USBTXQueueHandle = osMessageQueueNew (2, sizeof(uint32_t), &USBTXQueue_attributes);
+
+  /* creation of USBRXQueue */
+  USBRXQueueHandle = osMessageQueueNew (8, sizeof(uint16_t), &USBRXQueue_attributes);
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of mockADCDataIn */
+  mockADCDataInHandle = osThreadNew(task_Mock_ADC_Data_In, NULL, &mockADCDataIn_attributes);
+
+  /* creation of usbRX */
+  usbRXHandle = osThreadNew(TASK_USB_RX, NULL, &usbRX_attributes);
+
+  /* creation of usbBULKTXTASK */
+  usbBULKTXTASKHandle = osThreadNew(TASK_USB_BULK_TX, NULL, &usbBULKTXTASK_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Create the event(s) */
+  /* creation of controlADCEvent */
+  controlADCEventHandle = osEventFlagsNew(&controlADCEvent_attributes);
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
-  uint8_t buffer[512];
-
-  for(int i = 0; i < sizeof(buffer); i++){
-	  buffer[i] = i & 0xFF;
-  }
-
   while (1)
   {
-	  if(CDC_Transmit_FS((uint8_t*)&count, sizeof(count)) != USBD_OK){
-		  HAL_Delay(1);
-	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -341,6 +435,58 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* init code for USB_DEVICE */
+  MX_USB_DEVICE_Init();
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_task_Mock_ADC_Data_In */
+/**
+* @brief Function implementing the mockADCDataIn thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_task_Mock_ADC_Data_In */
+void task_Mock_ADC_Data_In(void *argument)
+{
+    static uint32_t buffer[BUFFER_COUNT][BUFFER_SIZE];
+    uint32_t counter = 0;
+    uint32_t buffer_index = 0;
+
+    for (;;)
+    {
+        // Wait for start
+        osEventFlagsWait(controlADCEventHandle, 0x01, osFlagsNoClear, osWaitForever);
+
+        // Fill buffer (simulate DMA writing entire buffer instantly)
+        for (int i = 0; i < BUFFER_SIZE; ++i) {
+            buffer[buffer_index][i] = counter++;
+        }
+
+        uint32_t *bufferPtr = buffer[buffer_index];
+        osMessageQueuePut(USBTXQueueHandle, &bufferPtr, 0, osWaitForever);
+
+        buffer_index = (buffer_index + 1) % BUFFER_COUNT;
+
+    }
+}
+
 
 /**
   * @brief  Period elapsed callback in non blocking mode
