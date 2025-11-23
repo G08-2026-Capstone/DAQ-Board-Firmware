@@ -35,7 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define BUFFER_COUNT 4
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -78,7 +78,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t mockADCDataInHandle;
 const osThreadAttr_t mockADCDataIn_attributes = {
   .name = "mockADCDataIn",
-  .stack_size = 1024 * 4,
+  .stack_size = 1800 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for usbRX */
@@ -92,7 +92,7 @@ const osThreadAttr_t usbRX_attributes = {
 osThreadId_t usbBULKTXTASKHandle;
 const osThreadAttr_t usbBULKTXTASK_attributes = {
   .name = "usbBULKTXTASK",
-  .stack_size = 1024 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for USBTXQueue */
@@ -184,7 +184,7 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of USBTXQueue */
-  USBTXQueueHandle = osMessageQueueNew (8, 3200, &USBTXQueue_attributes);
+  USBTXQueueHandle = osMessageQueueNew (2, sizeof(uint32_t), &USBTXQueue_attributes);
 
   /* creation of USBRXQueue */
   USBRXQueueHandle = osMessageQueueNew (8, sizeof(uint16_t), &USBRXQueue_attributes);
@@ -465,22 +465,28 @@ void StartDefaultTask(void *argument)
 /* USER CODE END Header_task_Mock_ADC_Data_In */
 void task_Mock_ADC_Data_In(void *argument)
 {
-  /* USER CODE BEGIN task_Mock_ADC_Data_In */
-  /* Infinite loop */
-	uint32_t buffer[BUFFER_SIZE];	// Simulated data (Needs work to simulate the DMA that will be running from the ADC)
-	uint32_t counter = 0;
-	for(;;)
-	{
-		osEventFlagsWait(controlADCEventHandle, 0x01, osFlagsNoClear, osWaitForever);	// This will wait for the start command to activate it.
+    static uint32_t buffer[BUFFER_COUNT][BUFFER_SIZE];
+    uint32_t counter = 0;
+    uint32_t buffer_index = 0;
 
-		for(int i = 0; i < BUFFER_SIZE; i++){
-			buffer[i] = counter++;
-		}
+    for (;;)
+    {
+        // Wait for start
+        osEventFlagsWait(controlADCEventHandle, 0x01, osFlagsNoClear, osWaitForever);
 
-		osMessageQueuePut(USBTXQueueHandle, &buffer, 0, osWaitForever);	// Simulated data is sent to the USB interface.
-	}
-  /* USER CODE END task_Mock_ADC_Data_In */
+        // Fill buffer (simulate DMA writing entire buffer instantly)
+        for (int i = 0; i < BUFFER_SIZE; ++i) {
+            buffer[buffer_index][i] = counter++;
+        }
+
+        uint32_t *bufferPtr = buffer[buffer_index];
+        osMessageQueuePut(USBTXQueueHandle, &bufferPtr, 0, osWaitForever);
+
+        buffer_index = (buffer_index + 1) % BUFFER_COUNT;
+
+    }
 }
+
 
 /**
   * @brief  Period elapsed callback in non blocking mode

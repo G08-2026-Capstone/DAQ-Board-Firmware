@@ -19,7 +19,7 @@ extern osThreadId_t usbTXBulkHandle;
 extern osMessageQueueId_t USBTXQueueHandle;
 
 // Defines
-#define BUFFER_SIZE 800
+#define BUFFER_SIZE 10000
 
 // Functions
 void TASK_USB_BULK_TX(void *argument);
