@@ -5,11 +5,76 @@
  *      Author: drive
  */
 
+#include "ads131m04.h"
+
 
 // Not thread safe only call before kernel starts
 void ads131m04_init(){
+	// Set word length to 32bits
+	ads131m04_set_mode();
+
+	// Set registers to desired initial values.
+	ads131m04_set_register_32bit(0x03, 0x0723);
+	ads131m04_set_register_32bit(0x04, 0x0000);
+	ads131m04_set_register_32bit(0x06, 0x1800);
+}
 
 
-	HAL_SPI_Transmit(&hspi1, pData, Size, Timeout);
+/**
+ * Set the value of any given register
+ */
+void ads131m04_set_register_32bit(uint8_t registerAddress, uint16_t data){
+	uint8_t txData[8];
 
+	// COMMAND
+	// Opcode (011) + Top 5 bits of Address
+	txData[0] = 0x60 | ((registerAddress >> 1) & 0x1F);
+
+	// Bottom 1 bit of Address
+	txData[1] = (registerAddress & 0x01) << 7;
+
+	// Padding
+	txData[2] = 0x00;
+	txData[3] = 0x00;
+
+	// DATA
+	txData[4] = (uint8_t)(data >> 8);
+
+	// Low Byte of Data
+	txData[5] = (uint8_t)(data & 0xFF);
+
+	// Padding (16 bits)
+	txData[6] = 0x00;
+	txData[7] = 0x00;
+
+	// Send the frame
+	ads131m04_select();
+	HAL_SPI_Transmit(&hspi1, txData, 8, 100);
+	ads131m04_deselect();
+}
+
+
+/**
+ * This function is used first in the init function to set the
+ * ADC to communicate in 32-bit frames.
+ */
+void ads131m04_set_mode(){
+	uint8_t registerSelect[3] = {0x61, 0x00, 0x00};
+	uint8_t registerSettings[3] = {0x02, 0x10, 0x00};
+	ads131m04_select();
+	// Write to register 0x02
+	HAL_SPI_Transmit(&hspi1, registerSelect, 3, 100);
+	// Sets the Word Length to 32-bits
+	HAL_SPI_Transmit(&hspi1, registerSettings, 3, 100);
+	ads131m04_deselect();
+}
+
+
+void ads131m04_select(){
+	HAL_GPIO_WritePin(ADS131_CS_GPIO_Port, ADS131_CS_Pin, GPIO_PIN_RESET);
+}
+
+
+void ads131m04_deselect(){
+	HAL_GPIO_WritePin(ADS131_CS_GPIO_Port, ADS131_CS_Pin, GPIO_PIN_SET);
 }
