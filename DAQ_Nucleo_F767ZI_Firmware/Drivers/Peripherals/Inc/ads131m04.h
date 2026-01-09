@@ -13,16 +13,22 @@
 #include "main.h"
 
 extern SPI_HandleTypeDef hspi1;
-
+extern uint8_t ads131mo4_DMA_tx_buffer[16];
+extern uint8_t ads131mo4_DMA_rx_buffer[BUFFER_SIZE_BYTES];
+extern volatile uint32_t rxBufferPointer;
 // Includes
 
 
 // Function Declarations
 void ads131m04_init();
 
-void ads131m04_set_register(uint8_t register, uint16_t data);
+void ads131m04_IT_fetch_data();
 
-void ads131m04_set_WLENGTH_32();
+void ads131m04_IT_DMA_Finished();
+
+void ads131m04_set_register_32bit(uint8_t register, uint16_t data);
+
+void ads131m04_set_mode();
 
 void ads131m04_select();
 
