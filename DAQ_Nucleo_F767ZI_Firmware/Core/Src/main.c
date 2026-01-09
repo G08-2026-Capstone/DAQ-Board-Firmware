@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
 #include "task_usbTX.h"
+#include "ads131m04.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,7 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define BUFFER_COUNT 4
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -88,7 +89,9 @@ const osEventFlagsAttr_t controlADCEvent_attributes = {
   .name = "controlADCEvent"
 };
 /* USER CODE BEGIN PV */
-
+uint8_t ads131mo4_DMA_tx_buffer[16];
+uint8_t ads131mo4_DMA_rx_buffer[BUFFER_SIZE_BYTES];
+volatile uint32_t rxBufferPointer = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -145,6 +148,8 @@ int main(void)
   MX_SPI1_Init();
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
+  // Set the tx buffer to zeros to avoid random commands being sent
+  memset(&ads131mo4_DMA_tx_buffer, 0, 16);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -505,7 +510,24 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if(GPIO_Pin == ADS131_DRDY_Pin){
+		ads131m04_IT_fetch_data();
+	}
+	else{
+		__NOP();
+	}
+}
 
+
+void HAL_SPI_TxRxCpltCallback (SPI_HandleTypeDef * hspi){
+	if(hspi == &hspi1){
+		ads131m04_IT_DMA_Finished();
+	}
+	else{
+		__NOP();
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
