@@ -36,7 +36,12 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+typedef struct __attribute__((packed)) {
+    uint32_t packet_counter;
+    int32_t ch0;
+    int32_t ch1;
+    int32_t ch2;
+} USB_Data_Packet_t;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
