@@ -36,7 +36,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-typedef struct __attribute__((packed)) {
+typedef struct {
     uint32_t packet_counter;
     int32_t ch0;
     int32_t ch1;
