@@ -20,6 +20,29 @@ void ads131m04_init(){
 }
 
 
+void ads131m04_IT_fetch_data(){
+	// Place data in correct location in buffer
+	uint8_t *current_rx_buffer_address = &ads131mo4_DMA_rx_buffer[rxBufferPointer];
+	HAL_SPI_TransmitReceive_DMA(&hspi1, ads131mo4_DMA_tx_buffer, current_rx_buffer_address, 16);
+}
+
+
+void ads131m04_IT_DMA_Finished(){
+	rxBufferPointer += 16;
+
+	if(rxBufferPointer == (BUFFER_SIZE_BYTES/2)){
+		// First Half ready
+	}
+	else if(rxBufferPointer == (BUFFER_SIZE_BYTES)){
+		// Wrap
+		rxBufferPointer = 0;
+
+		// Second Half ready
+
+	}
+}
+
+
 /**
  * Set the value of any given register
  */
