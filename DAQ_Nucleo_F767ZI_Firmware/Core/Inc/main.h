@@ -43,6 +43,8 @@ typedef struct {
     int32_t ch2;
 } USB_Data_Packet_t;
 
+extern volatile uint32_t currentPacketCounter;
+extern volatile uint32_t rxBufferPointer;
 
 // This is the number of values the buffer can store
 #define SAMPLES_PER_BUFFER 20
