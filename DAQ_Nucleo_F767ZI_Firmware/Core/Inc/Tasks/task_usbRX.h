@@ -5,8 +5,8 @@
  *      Author: drive
  */
 
-#ifndef INC_TASKS_TASK_USB_H_
-#define INC_TASKS_TASK_USB_H_
+#ifndef INC_TASKS_TASK_USBRX_H_
+#define INC_TASKS_TASK_USBRX_H_
 
 // Includes
 #include "cmsis_os.h"
