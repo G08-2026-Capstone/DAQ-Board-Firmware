@@ -29,16 +29,19 @@ void ads131m04_IT_fetch_data(){
 
 void ads131m04_IT_DMA_Finished(){
 	rxBufferPointer += 16;
+	uint32_t usbBufferIndex  = 0;
 
 	if(rxBufferPointer == (BUFFER_SIZE_BYTES/2)){
 		// First Half ready
+		usbBufferIndex = 0;
+		osMessageQueuePut(USBTXQueueHandle, &usbBufferIndex, 0, 0);
 	}
 	else if(rxBufferPointer == (BUFFER_SIZE_BYTES)){
 		// Wrap
 		rxBufferPointer = 0;
-
 		// Second Half ready
-
+		usbBufferIndex = BUFFER_SIZE_BYTES/2;
+		osMessageQueuePut(USBTXQueueHandle, &usbBufferIndex, 0, 0);
 	}
 }
 

@@ -9,6 +9,7 @@
 #define PERIPHERALS_INC_ADS131M04_H_
 
 #include "stm32f7xx_hal.h"
+#include "cmsis_os.h"
 #include "stm32f7xx.h"
 #include "main.h"
 
@@ -16,6 +17,7 @@ extern SPI_HandleTypeDef hspi1;
 extern uint8_t ads131mo4_DMA_tx_buffer[16];
 extern uint8_t ads131mo4_DMA_rx_buffer[BUFFER_SIZE_BYTES];
 extern volatile uint32_t rxBufferPointer;
+extern osMessageQueueId_t USBTXQueueHandle;
 // Includes
 
 
