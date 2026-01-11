@@ -90,8 +90,9 @@ const osEventFlagsAttr_t controlADCEvent_attributes = {
 };
 /* USER CODE BEGIN PV */
 uint8_t ads131mo4_DMA_tx_buffer[16];
-uint8_t ads131mo4_DMA_rx_buffer[BUFFER_SIZE_BYTES];
+__attribute__((aligned(32))) uint8_t ads131mo4_DMA_rx_buffer[BUFFER_SIZE_BYTES];
 volatile uint32_t rxBufferPointer = 0;
+volatile uint32_t currentPacketCounter = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -150,6 +151,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
   // Set the tx buffer to zeros to avoid random commands being sent
   memset(&ads131mo4_DMA_tx_buffer, 0, 16);
+  // Disable ADC interrupts initially
+  HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+  ads131m04_init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
