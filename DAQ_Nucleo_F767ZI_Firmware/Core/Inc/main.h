@@ -49,7 +49,7 @@ extern volatile uint32_t rxBufferPointer;
 // This is the number of values the buffer can store
 #define SAMPLES_PER_BUFFER 20
 // This is the Buffer size in bytes
-// Frame = (status + ch 0 + ch 1 + ch 2 + cd 3 + CRC) = 16 bytes
+// Frame = (status + ch 0 + ch 1 + ch 2 + cd 3 + CRC) = 24 bytes
 // Buffer = Frame * SAMPLES_PER_BUFFER
 #define BUFFER_SIZE_BYTES ((4 + 4 + 4 + 4 + 4 + 4) * SAMPLES_PER_BUFFER)
 /* USER CODE END ET */
