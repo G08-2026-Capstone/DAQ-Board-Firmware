@@ -23,6 +23,12 @@ void TASK_USB_RX(void *argument){
 			case 1:	// Start ADC task
 				// Reset Packet Counter
 				currentPacketCounter = 0;
+				// Flush out the ADC Fifo for new sequence
+				ads131m04_flush_fifo();
+
+				HAL_NVIC_ClearPendingIRQ(EXTI4_IRQn);
+				__HAL_GPIO_EXTI_CLEAR_IT(ADS131_DRDY_Pin);
+
 				// Start ADC data retrieval
 				HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 				break;
