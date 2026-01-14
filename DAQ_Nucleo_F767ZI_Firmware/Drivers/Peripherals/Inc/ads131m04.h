@@ -36,4 +36,6 @@ void ads131m04_select();
 
 void ads131m04_deselect();
 
+void ads131m04_flush_fifo();
+
 #endif /* PERIPHERALS_INC_ADS131M04_H_ */
