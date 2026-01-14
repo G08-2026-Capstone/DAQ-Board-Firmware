@@ -23,7 +23,7 @@ void ads131m04_init(){
 void ads131m04_IT_fetch_data(){
 	// Place data in correct location in buffer
 	uint8_t *current_rx_buffer_address = &ads131mo4_DMA_rx_buffer[rxBufferPointer];
-	HAL_SPI_TransmitReceive_DMA(&hspi1, ads131mo4_DMA_tx_buffer, current_rx_buffer_address, 16);
+	HAL_SPI_TransmitReceive_DMA(&hspi1, ads131mo4_DMA_tx_buffer, current_rx_buffer_address, 24);
 }
 
 
@@ -103,4 +103,16 @@ void ads131m04_select(){
 
 void ads131m04_deselect(){
 	HAL_GPIO_WritePin(ADS131_CS_GPIO_Port, ADS131_CS_Pin, GPIO_PIN_SET);
+}
+
+
+void ads131m04_flush_fifo(void) {
+    uint8_t dummy_tx[48] = {0};
+    uint8_t dummy_rx[48];
+
+    ads131m04_select();
+
+    HAL_SPI_TransmitReceive(&hspi1, dummy_tx, dummy_rx, 48, 100);
+
+    ads131m04_deselect();
 }
