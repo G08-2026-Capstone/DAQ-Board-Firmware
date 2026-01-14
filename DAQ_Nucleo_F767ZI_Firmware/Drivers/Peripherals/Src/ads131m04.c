@@ -106,7 +106,7 @@ void ads131m04_deselect(){
 }
 
 
-void ads131m04_flush_fifo(void) {
+void ads131m04_flush_fifo() {
     uint8_t dummy_tx[48] = {0};
     uint8_t dummy_rx[48];
 
