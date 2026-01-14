@@ -26,6 +26,7 @@ void TASK_USB_RX(void *argument){
 				// Flush out the ADC Fifo for new sequence
 				ads131m04_flush_fifo();
 
+				// Clear DRDY interrupts
 				HAL_NVIC_ClearPendingIRQ(EXTI4_IRQn);
 				__HAL_GPIO_EXTI_CLEAR_IT(ADS131_DRDY_Pin);
 
