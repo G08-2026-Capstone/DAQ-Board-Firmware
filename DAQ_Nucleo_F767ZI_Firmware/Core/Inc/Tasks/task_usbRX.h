@@ -13,6 +13,7 @@
 #include "task.h"
 #include "usbd_cdc_if.h"
 #include "usb_device.h"
+#include "ads131m04.h"
 
 
 extern osThreadId_t usbRXHandle;
