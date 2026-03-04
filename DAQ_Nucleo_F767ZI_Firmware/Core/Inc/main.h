@@ -36,7 +36,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-typedef struct {
+typedef struct __attribute__((packed)) {
     uint32_t packet_counter;
     int32_t ch0;
     int32_t ch1;
@@ -49,9 +49,11 @@ extern volatile uint32_t rxBufferPointer;
 // This is the number of values the buffer can store
 #define SAMPLES_PER_BUFFER 20
 // This is the Buffer size in bytes
-// Frame = (status + ch 0 + ch 1 + ch 2 + cd 3 + CRC) = 24 bytes
+// Frame = (status + ch 0 + ch 1 + ch 2 + cd 3) = 20 bytes
 // Buffer = Frame * SAMPLES_PER_BUFFER
-#define BUFFER_SIZE_BYTES ((4 + 4 + 4 + 4 + 4 + 4) * SAMPLES_PER_BUFFER)
+#define BUFFER_SIZE_BYTES ((4 + 4 + 4 + 4 + 4) * SAMPLES_PER_BUFFER)
+
+#define ADS131_FRAME_SIZE 20
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -86,6 +88,7 @@ void Error_Handler(void);
 #define RMII_MDIO_GPIO_Port GPIOA
 #define ADS131_DRDY_Pin GPIO_PIN_4
 #define ADS131_DRDY_GPIO_Port GPIOA
+#define ADS131_DRDY_EXTI_IRQn EXTI4_IRQn
 #define RMII_CRS_DV_Pin GPIO_PIN_7
 #define RMII_CRS_DV_GPIO_Port GPIOA
 #define RMII_RXD0_Pin GPIO_PIN_4
@@ -128,6 +131,8 @@ void Error_Handler(void);
 #define SWO_GPIO_Port GPIOB
 #define LD2_Pin GPIO_PIN_7
 #define LD2_GPIO_Port GPIOB
+#define ADC_RESET_Pin GPIO_PIN_8
+#define ADC_RESET_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

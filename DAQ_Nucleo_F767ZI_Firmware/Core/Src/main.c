@@ -49,6 +49,7 @@ CRC_HandleTypeDef hcrc;
 
 SPI_HandleTypeDef hspi1;
 DMA_HandleTypeDef hdma_spi1_rx;
+DMA_HandleTypeDef hdma_spi1_tx;
 
 UART_HandleTypeDef huart3;
 
@@ -89,7 +90,7 @@ const osEventFlagsAttr_t controlADCEvent_attributes = {
   .name = "controlADCEvent"
 };
 /* USER CODE BEGIN PV */
-uint8_t ads131mo4_DMA_tx_buffer[16];
+uint8_t ads131mo4_DMA_tx_buffer[20] = {0};
 __attribute__((aligned(32))) uint8_t ads131mo4_DMA_rx_buffer[BUFFER_SIZE_BYTES];
 volatile uint32_t rxBufferPointer = 0;
 volatile uint32_t currentPacketCounter = 0;
@@ -149,10 +150,9 @@ int main(void)
   MX_SPI1_Init();
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
-  // Set the tx buffer to zeros to avoid random commands being sent
-  memset(&ads131mo4_DMA_tx_buffer, 0, 16);
   // Disable ADC interrupts initially
   HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+  ads131m04_reset_ADC();
   ads131m04_init();
   /* USER CODE END 2 */
 
@@ -330,15 +330,15 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_ENABLE;
-  hspi1.Init.CRCPolynomial = 4129;
-  hspi1.Init.CRCLength = SPI_CRC_LENGTH_16BIT;
-  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 7;
+  hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
@@ -397,6 +397,9 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  /* DMA2_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
 
 }
 
@@ -424,7 +427,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(ADS131_CS_GPIO_Port, ADS131_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LD1_Pin|LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LD1_Pin|LD3_Pin|LD2_Pin|ADC_RESET_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
@@ -508,19 +511,28 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : ADC_RESET_Pin */
+  GPIO_InitStruct.Pin = ADC_RESET_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(ADC_RESET_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if(GPIO_Pin == ADS131_DRDY_Pin){
-		ads131m04_IT_fetch_data();
-	}
-	else{
-		__NOP();
-	}
+    if(GPIO_Pin == ADS131_DRDY_Pin){
+        ads131m04_IT_fetch_data();
+    }
 }
 
 
