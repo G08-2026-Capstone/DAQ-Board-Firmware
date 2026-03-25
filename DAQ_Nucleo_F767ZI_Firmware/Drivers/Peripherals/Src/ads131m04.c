@@ -11,7 +11,7 @@
 // Not thread safe only call before kernel starts
 void ads131m04_init(){
 	ads131m04_write_24bit_register(0x2, 0x210);
-	ads131m04_write_32bit_register(0x3, 0x0723);
+	ads131m04_write_32bit_register(0x3, 0x070F); // Used to set Oversampling rate and disable CH3
 	ads131m04_write_32bit_register(0x4, 0x0000);
 }
 

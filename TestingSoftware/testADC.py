@@ -30,7 +30,7 @@ SCALING = V_REF / (GAIN * (2**23))
 OFFSET_CALIBRATION = [0,0,0]  # Hard-coded offset values for each channel
 
 PACKET_SIZE = 16 
-STRUCT_FORMAT = '<Iiii' 
+STRUCT_FORMAT = '<Iiii'
 
 def main():
     port = "COM8"
