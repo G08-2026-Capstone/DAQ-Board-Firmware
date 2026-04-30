@@ -5,14 +5,15 @@
  *      Author: drive
  */
 
-#ifndef INC_TASKS_TASK_USB_H_
-#define INC_TASKS_TASK_USB_H_
+#ifndef INC_TASKS_TASK_USBRX_H_
+#define INC_TASKS_TASK_USBRX_H_
 
 // Includes
 #include "cmsis_os.h"
 #include "task.h"
 #include "usbd_cdc_if.h"
 #include "usb_device.h"
+#include "ads131m04.h"
 
 
 extern osThreadId_t usbRXHandle;

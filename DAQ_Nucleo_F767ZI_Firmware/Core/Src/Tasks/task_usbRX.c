@@ -17,10 +17,21 @@ void TASK_USB_RX(void *argument){
 
 		switch (message){
 			case 0:	// Stop ADC task
-				osEventFlagsClear(controlADCEventHandle, 0x1);
+				// Stop USB data retrieval
+				HAL_NVIC_DisableIRQ(EXTI4_IRQn);
 				break;
 			case 1:	// Start ADC task
-				osEventFlagsSet(controlADCEventHandle, 0x1);
+				// Reset Packet Counter
+				currentPacketCounter = 0;
+				// Flush out the ADC Fifo for new sequence
+				ads131m04_flush_fifo();
+
+				// Clear DRDY interrupts
+				HAL_NVIC_ClearPendingIRQ(EXTI4_IRQn);
+				__HAL_GPIO_EXTI_CLEAR_IT(ADS131_DRDY_Pin);
+
+				// Start ADC data retrieval
+				HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 				break;
 		}
 	}

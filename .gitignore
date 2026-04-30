@@ -54,4 +54,3 @@ TouchGFX/simulator/msvs/.vs
 # Ignore metadata files created by some editors.
 .metadata
 .vscode
-DAQ_Nucleo_F767ZI_Firmware/.settings
