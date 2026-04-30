@@ -2,6 +2,7 @@ import serial
 import struct
 import sys
 import math
+import time
 
 # --- Welford's Algorithm Class for Running Statistics ---
 class RunningStats:
@@ -38,6 +39,12 @@ def main():
     # Initialize one tracker per channel (CH0, CH1, CH2)
     stats_trackers = [RunningStats() for _ in range(3)]
     
+    # Data integrity and performance tracking
+    last_counter = -1
+    lost_packets = 0
+    total_packets = 0
+    start_time = time.time()
+    
     try:
         ser = serial.Serial(port, baudrate=115200, timeout=1)
         ser.reset_input_buffer()
@@ -56,7 +63,22 @@ def main():
                 # Unpack and convert
                 data = struct.unpack(STRUCT_FORMAT, raw_packet)
                 counter = data[0]
-            
+                
+                # --- Data Integrity and Performance Check ---
+                total_packets += 1
+                if last_counter != -1:
+                    expected_counter = (last_counter + 1) % 2**32 # Assuming 32-bit counter wrap-around
+                    if counter != expected_counter:
+                        # Account for counter wrapping
+                        diff = (counter - last_counter - 1 + 2**32) % 2**32
+                        lost_packets += diff
+                last_counter = counter
+                
+                integrity = ((total_packets - lost_packets) / total_packets) * 100 if total_packets > 0 else 100.0
+                
+                elapsed_time = time.time() - start_time
+                packets_per_sec = total_packets / elapsed_time if elapsed_time > 0 else 0
+
                 # Apply scaling AND subtract the hard-coded offset
                 voltages = [(x * SCALING) - OFFSET_CALIBRATION[i] for i, x in enumerate(data[1:])]
 
@@ -72,6 +94,8 @@ def main():
                 # Print formatted output
                 sys.stdout.write(
                     f"\rPkt: {counter:04d} | "
+                    f"Integrity: {integrity:3.2f}% | "
+                    f"Rate: {packets_per_sec:4.1f} Pkt/s | "
                     f"CH0: {voltages[0]:6.4f}V (μ: {s0[0]:6.4f}, σ: {s0[2]:6.4f}) | "
                     f"CH1: {voltages[1]:6.4f}V (μ: {s1[0]:6.4f}, σ: {s1[2]:6.4f}) | "
                     f"CH2: {voltages[2]:6.4f}V (μ: {s2[0]:6.4f}, σ: {s2[2]:6.4f})"
